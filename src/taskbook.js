@@ -108,6 +108,19 @@ class Taskbook {
     return Object.keys(data).map(id => parseInt(id, 10));
   }
 
+  _deriveParentStateFromSubtasks(subtasks) {
+    if (subtasks.every(s => s.isComplete)) {
+      return {isComplete: true, isPostponed: false};
+    }
+
+    if (subtasks.some(s => !s.isComplete && !s.isPostponed)) {
+      return {isComplete: false, isPostponed: false};
+    }
+
+    // All subtasks are either complete or postponed, at least one postponed
+    return {isComplete: false, isPostponed: true};
+  }
+
   _getPriority(desc) {
     const opt = desc.find(x => this._isPriorityOpt(x));
     return opt ? opt[opt.length - 1] : 1;
@@ -141,15 +154,29 @@ class Taskbook {
 
   _getStats() {
     const {_data} = this;
-    let [complete, inProgress, pending, notes] = [0, 0, 0, 0];
+    let [complete, inProgress, pending, postponed, notes] = [0, 0, 0, 0, 0];
 
     Object.keys(_data).forEach(id => {
       if (_data[id]._isTask) {
-        _data[id].isComplete ? complete++ : _data[id].inProgress ? inProgress++ : pending++;
+        if (_data[id].isComplete) {
+          complete++;
+        } else if (_data[id].inProgress) {
+          inProgress++;
+        } else if (_data[id].isPostponed) {
+          postponed++;
+        } else {
+          pending++;
+        }
 
         if (_data[id]._subtasks && _data[id]._subtasks.length > 0) {
           _data[id]._subtasks.forEach(s => {
-            s.isComplete ? complete++ : pending++;
+            if (s.isComplete) {
+              complete++;
+            } else if (s.isPostponed) {
+              postponed++;
+            } else {
+              pending++;
+            }
           });
         }
 
@@ -159,10 +186,10 @@ class Taskbook {
       return notes++;
     });
 
-    const total = complete + pending + inProgress;
+    const total = complete + pending + inProgress + postponed;
     const percent = (total === 0) ? 0 : Math.floor(complete * 100 / total);
 
-    return {percent, complete, inProgress, pending, notes};
+    return {percent, complete, inProgress, pending, postponed, notes};
   }
 
   _hasTerms(string, terms) {
@@ -364,7 +391,7 @@ class Taskbook {
 
     const subtasks = _data[id]._subtasks;
     const subtaskId = subtasks.length === 0 ? 1 : Math.max(...subtasks.map(s => s._id)) + 1;
-    subtasks.push({_id: subtaskId, description: desc, isComplete: false});
+    subtasks.push({_id: subtaskId, description: desc, isComplete: false, isPostponed: false});
 
     this._save(_data);
     render.successCreateSubtask(id, subtaskId);
@@ -407,10 +434,12 @@ class Taskbook {
       validIDs.forEach(id => {
         if (_data[id]._isTask) {
           _data[id].inProgress = false;
+          _data[id].isPostponed = false;
           _data[id].isComplete = !_data[id].isComplete;
           if (_data[id]._subtasks && _data[id]._subtasks.length > 0) {
             _data[id]._subtasks.forEach(s => {
               s.isComplete = _data[id].isComplete;
+              s.isPostponed = false;
             });
           }
 
@@ -438,13 +467,15 @@ class Taskbook {
       }
 
       subtask.isComplete = !subtask.isComplete;
+      if (subtask.isComplete) {
+        subtask.isPostponed = false;
+      }
 
-      const allDone = _data[parentId]._subtasks.every(s => s.isComplete);
-      if (allDone) {
-        _data[parentId].isComplete = true;
+      const {isComplete, isPostponed} = this._deriveParentStateFromSubtasks(_data[parentId]._subtasks);
+      _data[parentId].isComplete = isComplete;
+      _data[parentId].isPostponed = isPostponed;
+      if (isComplete) {
         _data[parentId].inProgress = false;
-      } else {
-        _data[parentId].isComplete = false;
       }
 
       return subtask.isComplete ? checked.push(ref) : unchecked.push(ref);
@@ -463,6 +494,7 @@ class Taskbook {
     ids.forEach(id => {
       if (_data[id]._isTask) {
         _data[id].isComplete = false;
+        _data[id].isPostponed = false;
         _data[id].inProgress = !_data[id].inProgress;
         return _data[id].inProgress ? started.push(id) : paused.push(id);
       }
@@ -480,6 +512,73 @@ class Taskbook {
     _data[id] = task;
     this._save(_data);
     render.successCreate(task);
+  }
+
+  postponeItems(ids) {
+    const subtaskRefs = ids.filter(x => String(x).includes('.'));
+    const taskIDs = ids.filter(x => !String(x).includes('.'));
+
+    if (taskIDs.length === 0 && subtaskRefs.length === 0) {
+      render.missingID();
+      process.exit(1);
+    }
+
+    const {_data} = this;
+    const [postponed, unpostponed] = [[], []];
+
+    if (taskIDs.length > 0) {
+      const validIDs = this._validateIDs(taskIDs);
+      validIDs.forEach(id => {
+        if (_data[id]._isTask) {
+          _data[id].isPostponed = !_data[id].isPostponed;
+          if (_data[id].isPostponed) {
+            _data[id].isComplete = false;
+            _data[id].inProgress = false;
+            postponed.push(id);
+          } else {
+            unpostponed.push(id);
+          }
+        }
+      });
+    }
+
+    subtaskRefs.forEach(ref => {
+      const parts = String(ref).split('.');
+      const parentId = Number(parts[0]);
+      const subtaskId = Number(parts[1]);
+
+      if (!_data[parentId] || !_data[parentId]._isTask) {
+        render.invalidID(ref);
+        process.exit(1);
+      }
+
+      const subtask = _data[parentId]._subtasks &&
+        _data[parentId]._subtasks.find(s => s._id === subtaskId);
+
+      if (!subtask) {
+        render.invalidID(ref);
+        process.exit(1);
+      }
+
+      subtask.isPostponed = !subtask.isPostponed;
+      if (subtask.isPostponed) {
+        subtask.isComplete = false;
+        postponed.push(ref);
+      } else {
+        unpostponed.push(ref);
+      }
+
+      const {isComplete, isPostponed} = this._deriveParentStateFromSubtasks(_data[parentId]._subtasks);
+      _data[parentId].isComplete = isComplete;
+      _data[parentId].isPostponed = isPostponed;
+      if (isComplete) {
+        _data[parentId].inProgress = false;
+      }
+    });
+
+    this._save(_data);
+    render.markPostponed(postponed);
+    render.markUnpostponed(unpostponed);
   }
 
   deleteItems(ids) {

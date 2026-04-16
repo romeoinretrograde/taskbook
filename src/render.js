@@ -5,7 +5,7 @@ const config = require('./config');
 
 signale.config({displayLabel: false});
 
-const {await: wait, error, log, note, pending, success} = signale;
+const {await: wait, error, log, note, pending, success, warn} = signale;
 const {blue, green, grey, magenta, red, underline, yellow} = chalk;
 
 const priorities = {2: 'yellow', 3: 'red'};
@@ -103,15 +103,15 @@ class Render {
   }
 
   _displaySubtask(parentId, subtask) {
-    const {isComplete} = subtask;
+    const {isComplete, isPostponed} = subtask;
     const prefix = this._buildSubtaskPrefix(parentId, subtask);
     const message = isComplete ? grey(subtask.description) : subtask.description;
     const msgObj = {prefix, message, suffix: ''};
-    return isComplete ? success(msgObj) : pending(msgObj);
+    return isComplete ? success(msgObj) : isPostponed ? warn(msgObj) : pending(msgObj);
   }
 
   _displayItemByBoard(item) {
-    const {_isTask, isComplete, inProgress} = item;
+    const {_isTask, isComplete, inProgress, isPostponed} = item;
     const age = this._getAge(item._timestamp);
     const star = this._getStar(item);
 
@@ -122,7 +122,7 @@ class Render {
     const msgObj = {prefix, message, suffix};
 
     if (_isTask) {
-      const result = isComplete ? success(msgObj) : inProgress ? wait(msgObj) : pending(msgObj);
+      const result = isComplete ? success(msgObj) : inProgress ? wait(msgObj) : isPostponed ? warn(msgObj) : pending(msgObj);
       if (item._subtasks && item._subtasks.length > 0) {
         item._subtasks.forEach(s => this._displaySubtask(item._id, s));
       }
@@ -134,7 +134,7 @@ class Render {
   }
 
   _displayItemByDate(item) {
-    const {_isTask, isComplete, inProgress} = item;
+    const {_isTask, isComplete, inProgress, isPostponed} = item;
     const boards = item.boards.filter(x => x !== 'My Board');
     const star = this._getStar(item);
 
@@ -145,7 +145,7 @@ class Render {
     const msgObj = {prefix, message, suffix};
 
     if (_isTask) {
-      const result = isComplete ? success(msgObj) : inProgress ? wait(msgObj) : pending(msgObj);
+      const result = isComplete ? success(msgObj) : inProgress ? wait(msgObj) : isPostponed ? warn(msgObj) : pending(msgObj);
       if (item._subtasks && item._subtasks.length > 0) {
         item._subtasks.forEach(s => this._displaySubtask(item._id, s));
       }
@@ -190,7 +190,7 @@ class Render {
     });
   }
 
-  displayStats({percent, complete, inProgress, pending, notes}) {
+  displayStats({percent, complete, inProgress, pending, postponed, notes}) {
     if (!this._configuration.displayProgressOverview) {
       return;
     }
@@ -201,10 +201,11 @@ class Render {
       `${green(complete)} ${grey('done')}`,
       `${blue(inProgress)} ${grey('in-progress')}`,
       `${magenta(pending)} ${grey('pending')}`,
+      `${yellow(postponed)} ${grey('postponed')}`,
       `${blue(notes)} ${grey(notes === 1 ? 'note' : 'notes')}`
     ];
 
-    if (pending + inProgress + complete + notes === 0) {
+    if (pending + inProgress + complete + postponed + notes === 0) {
       log({prefix: '\n ', message: 'Type `tb --help` to get started'});
     }
 
@@ -291,6 +292,26 @@ class Render {
 
     const [prefix, suffix] = ['\n', grey(ids.join(', '))];
     const message = `Paused ${ids.length > 1 ? 'tasks' : 'task'}:`;
+    success({prefix, message, suffix});
+  }
+
+  markPostponed(ids) {
+    if (ids.length === 0) {
+      return;
+    }
+
+    const [prefix, suffix] = ['\n', grey(ids.join(', '))];
+    const message = `Postponed ${ids.length > 1 ? 'tasks' : 'task'}:`;
+    success({prefix, message, suffix});
+  }
+
+  markUnpostponed(ids) {
+    if (ids.length === 0) {
+      return;
+    }
+
+    const [prefix, suffix] = ['\n', grey(ids.join(', '))];
+    const message = `Unpostponed ${ids.length > 1 ? 'tasks' : 'task'}:`;
     success({prefix, message, suffix});
   }
 

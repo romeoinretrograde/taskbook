@@ -37,6 +37,10 @@ const taskbookCLI = (input, flags) => {
     return taskbook.beginTasks(input);
   }
 
+  if (flags.postpone) {
+    return taskbook.postponeItems(input);
+  }
+
   if (flags.star) {
     return taskbook.starItems(input);
   }

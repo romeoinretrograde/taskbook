@@ -44,6 +44,10 @@ const cli = meow(help, {
       type: 'boolean',
       alias: 'b'
     },
+    postpone: {
+      type: 'boolean',
+      alias: 'pp'
+    },
     star: {
       type: 'boolean',
       alias: 's'
@@ -77,19 +81,23 @@ const cli = meow(help, {
       alias: 'm'
     },
     clear: {
-      type: 'boolean'
+      type: 'boolean',
+      alias: 'cl'
     },
     subtask: {
-      type: 'boolean'
+      type: 'boolean',
+      alias: 'st'
     },
     purge: {
       type: 'boolean'
     },
     renameBoard: {
-      type: 'boolean'
+      type: 'boolean',
+      alias: 'rb'
     },
     deleteBoard: {
-      type: 'boolean'
+      type: 'boolean',
+      alias: 'db'
     },
     taskbookDir: {
       type: 'string'

@@ -19,6 +19,7 @@ module.exports = `
       --list, -l         List items by attributes
       --move, -m         Move item between boards
       --note, -n         Create note
+      --postpone         Postpone/unpostpone task
       --priority, -p     Update priority of task
       --purge            Permanently delete archived items
       --rename-board     Rename a board
@@ -44,6 +45,7 @@ module.exports = `
       $ tb --move @1 cooking
       $ tb --note @coding Mergesort worse-case O(nlogn)
       $ tb --priority @3 2
+      $ tb --postpone 2
       $ tb --purge
       $ tb --purge 1 3
       $ tb --rename-board @coding @work
