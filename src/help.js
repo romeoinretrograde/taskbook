@@ -12,6 +12,7 @@ module.exports = `
       --clear            Delete all checked items
       --copy, -y         Copy item description
       --delete, -d       Delete item
+      --delete-board     Delete a board
       --edit, -e         Edit item description
       --find, -f         Search for items
       --help, -h         Display help message
@@ -20,6 +21,7 @@ module.exports = `
       --note, -n         Create note
       --priority, -p     Update priority of task
       --purge            Permanently delete archived items
+      --rename-board     Rename a board
       --restore, -r      Restore items from archive
       --star, -s         Star/unstar item
       --taskbook-dir     Define a custom taskbook directory
@@ -43,6 +45,8 @@ module.exports = `
       $ tb --priority @3 2
       $ tb --purge
       $ tb --purge 1 3
+      $ tb --rename-board @coding @work
+      $ tb --delete-board @cooking
       $ tb --restore 4
       $ tb --star 2
       $ tb --task @coding @reviews Review PR #42

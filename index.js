@@ -75,6 +75,14 @@ const taskbookCLI = (input, flags) => {
     return taskbook.purgeArchive(input);
   }
 
+  if (flags.renameBoard) {
+    return taskbook.renameBoard(input);
+  }
+
+  if (flags.deleteBoard) {
+    return taskbook.deleteBoard(input);
+  }
+
   taskbook.displayByBoard();
   return taskbook.displayStats();
 };

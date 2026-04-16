@@ -202,6 +202,12 @@ class Render {
     error({prefix: '\n ', message});
   }
 
+  invalidBoard(name) {
+    const [prefix, suffix] = ['\n', grey(name)];
+    const message = 'Unable to find board:';
+    error({prefix, message, suffix});
+  }
+
   invalidID(id) {
     const [prefix, suffix] = ['\n', grey(id)];
     const message = 'Unable to find item with id:';
@@ -280,6 +286,12 @@ class Render {
     success({prefix, message, suffix});
   }
 
+  missingBoard() {
+    const prefix = '\n';
+    const message = 'No board name was given as input';
+    error({prefix, message});
+  }
+
   missingBoards() {
     const prefix = '\n';
     const message = 'No boards were given as input';
@@ -351,6 +363,19 @@ class Render {
     const prefix = '\n';
     const message = 'Permanently deleted all archived items';
     success({prefix, message});
+  }
+
+  successRenameBoard(oldName, newName) {
+    const prefix = '\n';
+    const message = `Renamed board: ${grey(oldName)} to`;
+    const suffix = grey(newName);
+    success({prefix, message, suffix});
+  }
+
+  successDeleteBoard(name) {
+    const [prefix, suffix] = ['\n', grey(name)];
+    const message = 'Deleted board:';
+    success({prefix, message, suffix});
   }
 }
 

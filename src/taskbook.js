@@ -591,6 +591,69 @@ class Taskbook {
       render.successPurgeAll();
     }
   }
+
+  renameBoard(input) {
+    const boards = input.filter(x => x.startsWith('@') && x.length > 1);
+
+    if (boards.length < 2) {
+      render.missingBoard();
+      process.exit(1);
+    }
+
+    const [oldName, newName] = boards;
+    const existingBoards = this._getBoards();
+
+    if (!existingBoards.includes(oldName)) {
+      render.invalidBoard(oldName);
+      process.exit(1);
+    }
+
+    const {_data} = this;
+
+    Object.keys(_data).forEach(id => {
+      const idx = _data[id].boards.indexOf(oldName);
+      if (idx > -1) {
+        _data[id].boards[idx] = newName;
+      }
+    });
+
+    this._save(_data);
+    render.successRenameBoard(oldName, newName);
+  }
+
+  deleteBoard(input) {
+    const boards = input.filter(x => x.startsWith('@') && x.length > 1);
+
+    if (boards.length === 0) {
+      render.missingBoard();
+      process.exit(1);
+    }
+
+    const [boardName] = boards;
+    const existingBoards = this._getBoards();
+
+    if (!existingBoards.includes(boardName)) {
+      render.invalidBoard(boardName);
+      process.exit(1);
+    }
+
+    const {_data} = this;
+    const ids = [];
+
+    Object.keys(_data).forEach(id => {
+      if (_data[id].boards.includes(boardName)) {
+        ids.push(id);
+      }
+    });
+
+    ids.forEach(id => {
+      this._saveItemToArchive(_data[id]);
+      delete _data[id];
+    });
+
+    this._save(_data);
+    render.successDeleteBoard(boardName);
+  }
 }
 
 module.exports = Taskbook;

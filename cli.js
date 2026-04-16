@@ -82,6 +82,12 @@ const cli = meow(help, {
     purge: {
       type: 'boolean'
     },
+    renameBoard: {
+      type: 'boolean'
+    },
+    deleteBoard: {
+      type: 'boolean'
+    },
     taskbookDir: {
       type: 'string'
     }
