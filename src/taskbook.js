@@ -36,9 +36,27 @@ class Taskbook {
   }
 
   _generateID(data = this._data) {
-    const ids = Object.keys(data).map(id => parseInt(id, 10));
-    const max = (ids.length === 0) ? 0 : Math.max(...ids);
-    return max + 1;
+    const ids = new Set(Object.keys(data).map(id => parseInt(id, 10)));
+    let id = 1;
+    while (ids.has(id)) {
+      id++;
+    }
+
+    return id;
+  }
+
+  _compact() {
+    const data = this._data;
+    const sortedKeys = Object.keys(data).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+    const compacted = {};
+
+    sortedKeys.forEach((oldKey, index) => {
+      const newId = index + 1;
+      data[oldKey]._id = newId;
+      compacted[newId] = data[oldKey];
+    });
+
+    this._save(compacted);
   }
 
   _validateIDs(inputIDs, existingIDs = this._getIDs()) {
@@ -127,7 +145,15 @@ class Taskbook {
 
     Object.keys(_data).forEach(id => {
       if (_data[id]._isTask) {
-        return _data[id].isComplete ? complete++ : _data[id].inProgress ? inProgress++ : pending++;
+        _data[id].isComplete ? complete++ : _data[id].inProgress ? inProgress++ : pending++;
+
+        if (_data[id]._subtasks && _data[id]._subtasks.length > 0) {
+          _data[id]._subtasks.forEach(s => {
+            s.isComplete ? complete++ : pending++;
+          });
+        }
+
+        return;
       }
 
       return notes++;
@@ -312,6 +338,38 @@ class Taskbook {
     this._save(_data);
   }
 
+  createSubtask(input) {
+    const targets = input.filter(x => x.startsWith('@') && x.length > 1);
+
+    if (targets.length === 0) {
+      render.missingID();
+      process.exit(1);
+    }
+
+    const [target] = targets;
+    const id = this._validateIDs(target.replace('@', ''));
+    const {_data} = this;
+
+    if (!_data[id]._isTask) {
+      render.invalidSubtaskTarget();
+      process.exit(1);
+    }
+
+    const desc = input.filter(x => !x.startsWith('@')).join(' ');
+
+    if (desc.length === 0) {
+      render.missingDesc();
+      process.exit(1);
+    }
+
+    const subtasks = _data[id]._subtasks;
+    const subtaskId = subtasks.length === 0 ? 1 : Math.max(...subtasks.map(s => s._id)) + 1;
+    subtasks.push({_id: subtaskId, description: desc, isComplete: false});
+
+    this._save(_data);
+    render.successCreateSubtask(id, subtaskId);
+  }
+
   createNote(desc) {
     const {id, description, boards} = this._getOptions(desc);
     const note = new Note({id, description, boards});
@@ -333,16 +391,63 @@ class Taskbook {
   }
 
   checkTasks(ids) {
-    ids = this._validateIDs(ids);
+    const subtaskRefs = ids.filter(x => String(x).includes('.'));
+    const taskIDs = ids.filter(x => !String(x).includes('.'));
+
+    if (taskIDs.length === 0 && subtaskRefs.length === 0) {
+      render.missingID();
+      process.exit(1);
+    }
+
     const {_data} = this;
     const [checked, unchecked] = [[], []];
 
-    ids.forEach(id => {
-      if (_data[id]._isTask) {
-        _data[id].inProgress = false;
-        _data[id].isComplete = !_data[id].isComplete;
-        return _data[id].isComplete ? checked.push(id) : unchecked.push(id);
+    if (taskIDs.length > 0) {
+      const validIDs = this._validateIDs(taskIDs);
+      validIDs.forEach(id => {
+        if (_data[id]._isTask) {
+          _data[id].inProgress = false;
+          _data[id].isComplete = !_data[id].isComplete;
+          if (_data[id]._subtasks && _data[id]._subtasks.length > 0) {
+            _data[id]._subtasks.forEach(s => {
+              s.isComplete = _data[id].isComplete;
+            });
+          }
+
+          return _data[id].isComplete ? checked.push(id) : unchecked.push(id);
+        }
+      });
+    }
+
+    subtaskRefs.forEach(ref => {
+      const parts = String(ref).split('.');
+      const parentId = Number(parts[0]);
+      const subtaskId = Number(parts[1]);
+
+      if (!_data[parentId] || !_data[parentId]._isTask) {
+        render.invalidID(ref);
+        process.exit(1);
       }
+
+      const subtask = _data[parentId]._subtasks &&
+        _data[parentId]._subtasks.find(s => s._id === subtaskId);
+
+      if (!subtask) {
+        render.invalidID(ref);
+        process.exit(1);
+      }
+
+      subtask.isComplete = !subtask.isComplete;
+
+      const allDone = _data[parentId]._subtasks.every(s => s.isComplete);
+      if (allDone) {
+        _data[parentId].isComplete = true;
+        _data[parentId].inProgress = false;
+      } else {
+        _data[parentId].isComplete = false;
+      }
+
+      return subtask.isComplete ? checked.push(ref) : unchecked.push(ref);
     });
 
     this._save(_data);
@@ -585,9 +690,11 @@ class Taskbook {
       });
 
       this._saveArchive(_archive);
+      this._compact();
       render.successPurge(ids);
     } else {
       this._saveArchive({});
+      this._compact();
       render.successPurgeAll();
     }
   }

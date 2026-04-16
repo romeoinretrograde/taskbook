@@ -24,6 +24,7 @@ module.exports = `
       --rename-board     Rename a board
       --restore, -r      Restore items from archive
       --star, -s         Star/unstar item
+      --subtask          Create subtask
       --taskbook-dir     Define a custom taskbook directory
       --task, -t         Create task
       --timeline, -i     Display timeline view
@@ -49,6 +50,8 @@ module.exports = `
       $ tb --delete-board @cooking
       $ tb --restore 4
       $ tb --star 2
+      $ tb --subtask @3 Write failing tests
+      $ tb --check 3.1
       $ tb --task @coding @reviews Review PR #42
       $ tb --task @coding Improve documentation
       $ tb --task Make some buttercream

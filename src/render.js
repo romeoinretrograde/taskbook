@@ -98,6 +98,18 @@ class Render {
     return log(titleObj);
   }
 
+  _buildSubtaskPrefix(parentId, subtask) {
+    return `       ${grey(`${parentId}.${subtask._id}.`)}`;
+  }
+
+  _displaySubtask(parentId, subtask) {
+    const {isComplete} = subtask;
+    const prefix = this._buildSubtaskPrefix(parentId, subtask);
+    const message = isComplete ? grey(subtask.description) : subtask.description;
+    const msgObj = {prefix, message, suffix: ''};
+    return isComplete ? success(msgObj) : pending(msgObj);
+  }
+
   _displayItemByBoard(item) {
     const {_isTask, isComplete, inProgress} = item;
     const age = this._getAge(item._timestamp);
@@ -110,7 +122,12 @@ class Render {
     const msgObj = {prefix, message, suffix};
 
     if (_isTask) {
-      return isComplete ? success(msgObj) : inProgress ? wait(msgObj) : pending(msgObj);
+      const result = isComplete ? success(msgObj) : inProgress ? wait(msgObj) : pending(msgObj);
+      if (item._subtasks && item._subtasks.length > 0) {
+        item._subtasks.forEach(s => this._displaySubtask(item._id, s));
+      }
+
+      return result;
     }
 
     return note(msgObj);
@@ -128,7 +145,12 @@ class Render {
     const msgObj = {prefix, message, suffix};
 
     if (_isTask) {
-      return isComplete ? success(msgObj) : inProgress ? wait(msgObj) : pending(msgObj);
+      const result = isComplete ? success(msgObj) : inProgress ? wait(msgObj) : pending(msgObj);
+      if (item._subtasks && item._subtasks.length > 0) {
+        item._subtasks.forEach(s => this._displaySubtask(item._id, s));
+      }
+
+      return result;
     }
 
     return note(msgObj);
@@ -200,6 +222,12 @@ class Render {
     const message =
       'Please provide a value for --taskbook-dir or remove the flag.';
     error({prefix: '\n ', message});
+  }
+
+  invalidSubtaskTarget() {
+    const prefix = '\n';
+    const message = 'Subtasks can only be added to tasks, not notes';
+    error({prefix, message});
   }
 
   invalidBoard(name) {
@@ -313,6 +341,12 @@ class Render {
   successCreate({_id, _isTask}) {
     const [prefix, suffix] = ['\n', grey(_id)];
     const message = `Created ${_isTask ? 'task:' : 'note:'}`;
+    success({prefix, message, suffix});
+  }
+
+  successCreateSubtask(parentId, subtaskId) {
+    const [prefix, suffix] = ['\n', grey(`${parentId}.${subtaskId}`)];
+    const message = 'Created subtask:';
     success({prefix, message, suffix});
   }
 

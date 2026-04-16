@@ -13,6 +13,10 @@ const taskbookCLI = (input, flags) => {
     return taskbook.createTask(input);
   }
 
+  if (flags.subtask) {
+    return taskbook.createSubtask(input);
+  }
+
   if (flags.restore) {
     return taskbook.restoreItems(input);
   }
