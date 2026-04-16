@@ -19,6 +19,7 @@ module.exports = `
       --move, -m         Move item between boards
       --note, -n         Create note
       --priority, -p     Update priority of task
+      --purge            Permanently delete archived items
       --restore, -r      Restore items from archive
       --star, -s         Star/unstar item
       --taskbook-dir     Define a custom taskbook directory
@@ -40,6 +41,8 @@ module.exports = `
       $ tb --move @1 cooking
       $ tb --note @coding Mergesort worse-case O(nlogn)
       $ tb --priority @3 2
+      $ tb --purge
+      $ tb --purge 1 3
       $ tb --restore 4
       $ tb --star 2
       $ tb --task @coding @reviews Review PR #42

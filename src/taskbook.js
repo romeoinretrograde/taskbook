@@ -574,6 +574,23 @@ class Taskbook {
 
     this.deleteItems(ids);
   }
+
+  purgeArchive(ids) {
+    if (ids && ids.length > 0) {
+      ids = this._validateIDs(ids, this._getIDs(this._archive));
+      const {_archive} = this;
+
+      ids.forEach(id => {
+        delete _archive[id];
+      });
+
+      this._saveArchive(_archive);
+      render.successPurge(ids);
+    } else {
+      this._saveArchive({});
+      render.successPurgeAll();
+    }
+  }
 }
 
 module.exports = Taskbook;

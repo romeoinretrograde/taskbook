@@ -340,6 +340,18 @@ class Render {
     const message = `Copied the ${ids.length > 1 ? 'descriptions of items' : 'description of item'}:`;
     success({prefix, message, suffix});
   }
+
+  successPurge(ids) {
+    const [prefix, suffix] = ['\n', grey(ids.join(', '))];
+    const message = `Permanently deleted archived ${ids.length > 1 ? 'items' : 'item'}:`;
+    success({prefix, message, suffix});
+  }
+
+  successPurgeAll() {
+    const prefix = '\n';
+    const message = 'Permanently deleted all archived items';
+    success({prefix, message});
+  }
 }
 
 module.exports = new Render();

@@ -79,6 +79,9 @@ const cli = meow(help, {
     clear: {
       type: 'boolean'
     },
+    purge: {
+      type: 'boolean'
+    },
     taskbookDir: {
       type: 'string'
     }
